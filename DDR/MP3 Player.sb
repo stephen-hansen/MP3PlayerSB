@@ -1,0 +1,231 @@
+GraphicsWindow.Width = 300
+GraphicsWindow.Height = 600
+GraphicsWindow.Title = "MP3 Player"
+GraphicsWindow.BackgroundColor = "BlueViolet"
+fpath = Program.Directory + "\"
+
+GraphicsWindow.BrushColor = "White"
+selector = Shapes.AddRectangle(260,30)
+Shapes.Move(selector, 20, 285)
+
+songs = File.GetDirectories(fpath + "Songs\")
+For i = 1 To Array.GetItemCount(songs)
+  GraphicsWindow.PenWidth = 0
+  GraphicsWindow.BrushColor = "Gray"
+  box[i] = Shapes.AddRectangle(250,20)
+  Shapes.Move(box[i], 25, 290 + 30*(i-1))
+  GraphicsWindow.FontSize = 12
+  GraphicsWindow.BrushColor = "White"
+  boxTitle[i] = Shapes.AddText(Text.GetSubTextToEnd(songs[i],Text.GetLength(fpath) + 7))
+  Shapes.Move(boxTitle[i], 25, 290 + 30*(i-1))
+EndFor  
+
+selection = 1
+u = 0
+d = 0
+r = 0
+p = 0
+a = 0
+s = 0
+pause = 0
+auto = 0
+shuffle = 0
+repeat = 0
+lock = 0
+
+GraphicsWindow.KeyDown = KeyDownEventMenu
+GraphicsWindow.KeyUp = KeyUpEventMenu
+
+shuffleTotal = 0
+menu = "true"
+moved = 0
+trig = 0
+trig2 = 0
+Sound.Play(songs[selection] + "\song.mp3")
+length = File.ReadLine(songs[selection] + "\length.txt",1)
+GraphicsWindow.DrawResizedImage(songs[selection] + "\bg.jpg", 0, 0, GraphicsWindow.Width, GraphicsWindow.Height)
+check = 0
+While menu = "true"
+  Program.Delay(1)
+  If shuffle = 1 And trig2 = 0 Then
+    trig2 = 1 
+  EndIf  
+  If shuffle = 0 And trig2 = 1 Then
+    trig2 = 0
+    shuffleTotal = 0
+    For i = 1 To Array.GetItemCount(songs)
+      shuffleCheck[i] = 0
+    EndFor
+  EndIf  
+  If pause = 0 Then
+    If trig = 1 Then
+      trig = 0
+      Sound.Play(songs[selection] + "\song.mp3")
+    EndIf
+    check = check + 1
+  EndIf 
+  If pause = 1 And trig = 0 Then
+    trig = 1
+    Sound.Pause(songs[selection] + "\song.mp3")
+  EndIf  
+  If check >= length And auto = 1 Then
+    Sound.Stop(songs[selection] + "\song.mp3")
+    check = 0
+    If selection = Array.GetItemCount(songs) Then
+      selection = 1
+      For i = 1 To Array.GetItemCount(songs)
+        Shapes.Move(box[i], 25, 290 + 30*(i-1))
+        Shapes.Move(boxTitle[i], 25, 290 + 30*(i-1))
+      EndFor
+    Else
+      selection = selection + 1
+      For i = 1 To Array.GetItemCount(songs)
+        Shapes.Move(box[i], 25, Shapes.GetTop(box[i]) - 30)
+        Shapes.Move(boxTitle[i], 25, Shapes.GetTop(boxTitle[i]) - 30)
+      EndFor
+    EndIf  
+    Sound.Play(songs[selection] + "\song.mp3")
+    length = File.ReadLine(songs[selection] + "\length.txt",1)
+    GraphicsWindow.DrawResizedImage(songs[selection] + "\bg.jpg", 0, 0, GraphicsWindow.Width, GraphicsWindow.Height) 
+  EndIf
+  If check >= length And shuffle = 1 Then
+    Sound.Stop(songs[selection] + "\song.mp3")
+    check = 0
+    shuffleTotal = shuffleTotal + 1
+    shuffleCheck[shuffleTotal] = selection
+    failsafe = 0
+    failtotal = 0
+    While failsafe <> 2
+      failsafe = 0
+      selection = Math.GetRandomNumber(Array.GetItemCount(songs))
+      For i = 1 To shuffleTotal
+        If selection = shuffleCheck[i] Then
+          failsafe = 1
+        EndIf
+        If shuffleCheck[i] > 0 Then
+          failtotal = failtotal + 1
+        EndIf
+      EndFor
+      If failsafe = 0 Then
+        failsafe = 2
+      EndIf
+      If failtotal = Array.GetItemCount(songs) And selection <> shuffleCheck[shuffleTotal] Then
+        failsafe = 2
+        shuffleTotal = 0
+        For i = 1 To Array.GetItemCount(songs)
+          shuffleCheck[i] = 0
+        EndFor  
+      EndIf
+    EndWhile     
+    For i = 1 To Array.GetItemCount(songs)
+      Shapes.Move(box[i], 25, 290 + 30*(i-1) - 30*(selection-1))
+      Shapes.Move(boxTitle[i], 25, 290 + 30*(i-1) - 30*(selection-1))
+    EndFor 
+    Sound.Play(songs[selection] + "\song.mp3")
+    length = File.ReadLine(songs[selection] + "\length.txt",1)
+    GraphicsWindow.DrawResizedImage(songs[selection] + "\bg.jpg", 0, 0, GraphicsWindow.Width, GraphicsWindow.Height) 
+  EndIf
+  If check >= length And repeat = 1 Then
+    check = 0
+    Sound.Stop(songs[selection] + "\song.mp3")
+    Sound.Play(songs[selection] + "\song.mp3")
+    length = File.ReadLine(songs[selection] + "\length.txt",1)
+    GraphicsWindow.DrawResizedImage(songs[selection] + "\bg.jpg", 0, 0, GraphicsWindow.Width, GraphicsWindow.Height) 
+  EndIf  
+  If d - u <> moved And d - u <> 0 And ((selection <> 1 And selection <> Array.GetItemCount(songs)) Or (selection = 1 And d - u > 0) Or (selection = Array.GetItemCount(songs) And d - u < 0)) Then 
+    lock = 1
+    moved = d - u
+    check = 0
+    Sound.Stop(songs[selection] + "\song.mp3")
+    selection = selection + d - u
+    Sound.Play(songs[selection] + "\song.mp3")
+    length = File.ReadLine(songs[selection] + "\length.txt",1)
+    GraphicsWindow.DrawResizedImage(songs[selection] + "\bg.jpg", 0, 0, GraphicsWindow.Width, GraphicsWindow.Height)
+    For i = 1 To Array.GetItemCount(songs)
+      Shapes.Move(box[i], 25, Shapes.GetTop(box[i]) - 30*(d-u))
+      Shapes.Move(boxTitle[i], 25, Shapes.GetTop(boxTitle[i]) - 30*(d-u))
+    EndFor 
+  ElseIf d - u <> moved Then 
+    moved = 0  
+  EndIf
+  lock = 0  
+EndWhile  
+
+Sub KeyDownEventMenu
+  If GraphicsWindow.LastKey = "Up" And lock = 0 And moved = 0 Then
+    u = 1
+    lock = 1
+  EndIf
+  If GraphicsWindow.LastKey = "Down" And lock = 0 And moved = 0 Then
+    d = 1
+    lock = 1
+  EndIf 
+  If GraphicsWindow.LastKey = "P" And p = 0 Then
+    p = 1
+    If pause = 0 Then
+      pause = 1
+      GraphicsWindow.Title = GraphicsWindow.Title + " PAUSED"
+    ElseIf pause = 1 Then
+      pause = 0
+      textcheck = Text.GetLength(GraphicsWindow.Title)
+      GraphicsWindow.Title = Text.GetSubText(GraphicsWindow.Title,1,textcheck - 7)
+    EndIf  
+  EndIf
+  If GraphicsWindow.LastKey = "A" And a = 0 And pause = 0 Then
+    a = 1
+    If auto = 0 Then
+      auto = 1
+      shuffle = 0
+      repeat = 0
+      GraphicsWindow.Title = "MP3 Player (Auto)"
+    ElseIf auto = 1 Then
+      auto = 0
+      GraphicsWindow.Title = "MP3 Player"
+    EndIf  
+  EndIf
+  If GraphicsWindow.LastKey = "S" And s = 0 And pause = 0 Then
+    s = 1
+    If shuffle = 0 Then
+      shuffle = 1
+      auto = 0
+      repeat = 0
+      GraphicsWindow.Title = "MP3 Player (Shuffle)"
+    ElseIf shuffle = 1 Then
+      shuffle = 0
+      GraphicsWindow.Title = "MP3 Player"
+    EndIf  
+  EndIf 
+  If GraphicsWindow.LastKey = "R" And r = 0 And pause = 0 Then
+    r = 1
+    If repeat = 0 Then
+      repeat = 1
+      auto = 0
+      shuffle = 0
+      GraphicsWindow.Title = "MP3 Player (Repeat)"
+    ElseIf repeat = 1 Then
+      repeat = 0
+      GraphicsWindow.Title = "MP3 Player"
+    EndIf  
+  EndIf  
+EndSub  
+
+Sub KeyUpEventMenu
+  If GraphicsWindow.LastKey = "Up" And lock = 0 Then
+    u = 0
+  EndIf
+  If GraphicsWindow.LastKey = "Down" And lock = 0 Then
+    d = 0
+  EndIf  
+  If GraphicsWindow.LastKey = "P" Then
+    p = 0
+  EndIf 
+  If GraphicsWindow.LastKey = "A" Then
+    a = 0
+  EndIf 
+  If GraphicsWindow.LastKey = "S" Then
+    s = 0
+  EndIf
+  If GraphicsWindow.LastKey = "R" Then
+    r = 0
+  EndIf
+EndSub

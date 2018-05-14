@@ -1,0 +1,158 @@
+GraphicsWindow.Width = 300
+GraphicsWindow.Height = 600
+GraphicsWindow.Title = "DDR"
+GraphicsWindow.BackgroundColor = "BlueViolet"
+fpath = Program.Directory + "\"
+
+GraphicsWindow.BrushColor = "White"
+selector = Shapes.AddRectangle(260,30)
+Shapes.Move(selector, 20, 285)
+
+songs = File.GetDirectories(fpath + "Levels\")
+For i = 1 To Array.GetItemCount(songs)
+  GraphicsWindow.PenWidth = 0
+  GraphicsWindow.BrushColor = "Gray"
+  box[i] = Shapes.AddRectangle(250,20)
+  Shapes.Move(box[i], 25, 290 + 30*(i-1))
+  GraphicsWindow.FontSize = 12
+  GraphicsWindow.BrushColor = "White"
+  boxTitle[i] = Shapes.AddText(songs[i])
+  Shapes.Move(boxTitle[i], 25, 290 + 30*(i-1))
+EndFor  
+
+selection = 1
+u = 0
+d = 0
+l = 0
+r = 0
+
+GraphicsWindow.KeyDown = KeyDownEventMenu
+GraphicsWindow.KeyUp = KeyUpEventMenu
+
+Sub KeyDownEventMenu
+  If GraphicsWindow.LastKey = "W" Or GraphicsWindow.LastKey = "Up" Then
+    u = 1
+  EndIf
+  If GraphicsWindow.LastKey = "S" Or GraphicsWindow.LastKey = "Down" Then
+    d = 1
+  EndIf  
+  If GraphicsWindow.LastKey = "Return" Then
+    menu = "false"
+  EndIf  
+EndSub  
+
+Sub KeyUpEventMenu
+  If GraphicsWindow.LastKey = "W" Or GraphicsWindow.LastKey = "Up" Then
+    u = 0
+  EndIf
+  If GraphicsWindow.LastKey = "S" Or GraphicsWindow.LastKey = "Down" Then
+    d = 0
+  EndIf  
+EndSub
+
+menu = "true"
+moved = 0
+Sound.Play(songs[selection] + "\song.mp3")
+
+While menu = "true"
+  If d - u <> moved And d - u <> 0 And ((selection <> 1 And selection <> Array.GetItemCount(songs)) Or (selection = 1 And d - u > 0) Or (selection = Array.GetItemCount(songs) And d - u < 0)) Then 
+    moved = d - u
+    Sound.Stop(songs[selection] + "\song.mp3")
+    selection = selection + d - u
+    Sound.Play(songs[selection] + "\song.mp3")
+    For i = 1 To Array.GetItemCount(songs)
+      Shapes.Move(box[i], 25, Shapes.GetTop(box[i]) - 30*(d-u))
+      Shapes.Move(boxTitle[i], 25, Shapes.GetTop(boxTitle[i]) - 30*(d-u))
+    EndFor  
+  ElseIf d - u <> moved Then 
+    moved = 0  
+  EndIf  
+EndWhile  
+
+GraphicsWindow.Clear()
+GraphicsWindow.DrawResizedImage(songs[selection] + "\bg.jpg", 0, 0, GraphicsWindow.Width, GraphicsWindow.Height)
+Sound.Stop(songs[selection] + "\song.mp3")
+selectSong = songs[selection]
+curRow = 1
+icon["left"] = Shapes.AddImage(fpath + "left.png")
+icon["down"] = Shapes.AddImage(fpath + "down.png")
+icon["up"] = Shapes.AddImage(fpath + "up.png")
+icon["right"] = Shapes.AddImage(fpath + "right.png")
+Shapes.Move(icon["left"], 22, 0)
+Shapes.Move(icon["down"], 86, 0)
+Shapes.Move(icon["up"], 150, 0)
+Shapes.Move(icon["right"], 214, 0)
+tempo = File.ReadLine(selectSong + "\game.txt", 1)
+speed = 4
+check = File.ReadContents(selectSong + "\game.txt")
+linecount = 0
+For i = 1 To text.GetLength(check) - 1
+  thisChar = Text.GetCharacterCode(Text.GetSubText(check,i,1))
+  nextChar = Text.GetCharacterCode(Text.GetSubText(check,i+1,1))
+  If thisChar = 13 And nextChar = 10 then 
+    linecount = linecount + 1
+  EndIf
+EndFor
+
+For i = 2 To 12
+  For j = 1 To Text.GetLength(File.ReadLine(selectSong + "\game.txt", i))
+    If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", i),j,1) = "L" Then
+      arrow[i-1][j] = Shapes.AddImage(selectSong + "\left.png")
+      Shapes.Move(arrow[i-1][j], 22, 64 * speed * (i-1))
+    EndIf
+    If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", i),j,1) = "D" Then
+      arrow[i-1][j] = Shapes.AddImage(selectSong + "\down.png")
+      Shapes.Move(arrow[i-1][j], 86, 64 * speed * (i-1))
+    EndIf
+    If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", i),j,1) = "U" Then
+      arrow[i-1][j] = Shapes.AddImage(selectSong + "\up.png")
+      Shapes.Move(arrow[i-1][j], 150, 64 * speed * (i-1))
+    EndIf
+    If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", i),j,1) = "R" Then
+      arrow[i-1][j] = Shapes.AddImage(selectSong + "\right.png")
+      Shapes.Move(arrow[i-1][j], 214, 64 * speed * (i-1))
+    EndIf     
+  EndFor  
+EndFor  
+Sound.PlayAndWait(fpath + "ready.wav")
+Sound.Play(fpath + "go.wav")
+Sound.Play(selectSong + "\song.mp3")
+
+checkpoint = speed * 64/(64 * speed * (tempo/60000))
+counter = -checkpoint
+game = "true"
+While game = "true"
+  Program.Delay(1)
+  counter = counter + 1
+  For i = curRow To curRow + 9
+    For j = 1 To Array.GetItemCount(arrow[i])
+      Shapes.Move(arrow[i][j], Shapes.GetLeft(arrow[i][j]), Shapes.GetTop(arrow[i][j]) - (64 * speed * (tempo/60000)))
+    Endfor
+  EndFor  
+  If counter > checkpoint Then
+    counter = 0
+    For j = 1 To Array.GetItemCount(arrow[curRow]) 
+      Shapes.Remove(arrow[curRow][j])
+    EndFor  
+    curRow = curRow + 1
+    
+    For j = 1 To Text.GetLength(File.ReadLine(selectSong + "\game.txt", curRow + 10))
+      If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", curRow + 10),j,1) = "L" Then
+        arrow[curRow + 10-1][j] = Shapes.AddImage(selectSong + "\left.png")
+        Shapes.Move(arrow[curRow + 10-1][j], 22, 64 * speed * (10-1))
+      EndIf
+      If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", curRow + 10),j,1) = "D" Then
+        arrow[curRow + 10-1][j] = Shapes.AddImage(selectSong + "\down.png")
+        Shapes.Move(arrow[curRow + 10-1][j], 86, 64 * speed * (10-1))
+      EndIf
+      If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", curRow + 10),j,1) = "U" Then
+        arrow[curRow + 10-1][j] = Shapes.AddImage(selectSong + "\up.png")
+        Shapes.Move(arrow[curRow + 10-1][j], 150, 64 * speed * (10-1))
+      EndIf
+      If Text.GetSubText(File.ReadLine(selectSong + "\game.txt", curRow + 10),j,1) = "R" Then
+        arrow[curRow + 10-1][j] = Shapes.AddImage(selectSong + "\right.png")
+        Shapes.Move(arrow[curRow + 10-1][j], 214, 64 * speed * (10-1))
+      EndIf     
+    EndFor
+  EndIf  
+EndWhile  

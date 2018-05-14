@@ -1,0 +1,485 @@
+'TODO:
+'Use LitDev LDSound.MusicPlayTime to get times (DONE?)
+'Have themes sort by albums and not individual songs (DONE?)
+'Be able to play specific albums or shuffle all songs (DONE?)
+albumMode = 0
+start:
+Sound.Stop(songs[albumSelect][songSelect])
+Shapes.Remove(selector)
+Shapes.Remove(progressbar)
+Shapes.Remove(progressbarblank)
+For i = 1 To Array.GetItemCount(albums)
+  For j = 1 To Array.GetItemCount(songs[i])
+    Shapes.Remove(box[i][j])
+    Shapes.Remove(boxTitle[i][j])
+  EndFor
+EndFor
+GraphicsWindow.Clear()
+GraphicsWindow.Width = 300
+GraphicsWindow.Height = 600
+GraphicsWindow.Title = "MP3 Player"
+GraphicsWindow.BackgroundColor = "MediumBlue"
+GraphicsWindow.FontName = "Consolas"
+
+index = albumMode
+albumSelect = 1
+songSelect = 1
+u = 0
+d = 0
+r = 0
+p = 0
+a = 0
+s = 0
+enter = 0
+back = 0
+moved = 0
+pause = 0
+auto = 0
+shuffle = 0
+repeat = 0
+lock = 0
+
+GraphicsWindow.KeyDown = KeyDownEventMenu
+GraphicsWindow.KeyUp = KeyUpEventMenu
+
+fpath = Program.Directory + "\"
+albums = File.GetDirectories(fpath + "Albums\")
+GraphicsWindow.BrushColor = "Black"
+GraphicsWindow.PenColor = "Black"
+albumSelector = Shapes.AddRectangle(270, 60)
+Shapes.Move(albumSelector, 15, 270)
+For i = 1 To Array.GetItemCount(albums)
+  songs[i] = File.GetFiles(albums[i])
+  GraphicsWindow.BrushColor = "White"
+  GraphicsWindow.PenWidth = 0
+  albumBox[i] = Shapes.AddRectangle(250, 40)
+  Shapes.Move(albumBox[i], 25, 280 + (i-albumMode)*60)
+  GraphicsWindow.BrushColor = "Black"
+  GraphicsWindow.FontSize = 24
+  albumTitle[i] = Shapes.AddText(Text.GetSubTextToEnd(albums[i], Text.GetLength(fpath + "Albums\") + 1))
+  Shapes.Move(albumTitle[i], 30, 285 + (i-albumMode)*60)
+EndFor
+GraphicsWindow.BrushColor = "White"
+GraphicsWindow.PenWidth = 0
+albumBox[0] = Shapes.AddRectangle(250, 40)
+Shapes.Move(albumBox[0], 25, 280 + (0-albumMode)*60)
+GraphicsWindow.BrushColor = "Black"
+GraphicsWindow.FontSize = 24
+albumTitle[0] = Shapes.AddText("All Albums")
+Shapes.Move(albumTitle[0], 30, 285 + (0-albumMode)*60)
+albumMode = "true"
+While albumMode = "true"
+  If d - u <> moved And d - u <> 0 And ((index <> 0 And index <> Array.GetItemCount(albums)) Or (index = 0 And d - u > 0 And index <> Array.GetItemCount(albums)) Or (index = Array.GetItemCount(albums) And d - u < 0 And index <> 0)) Then
+    lock = 1
+    moved = d - u
+    index = index + moved
+    For i = 0 To Array.GetItemCount(albums)
+      Shapes.Move(albumBox[i], Shapes.GetLeft(albumBox[i]), Shapes.GetTop(albumBox[i]) - moved*60)
+      Shapes.Move(albumTitle[i], Shapes.GetLeft(albumTitle[i]), Shapes.GetTop(albumTitle[i]) - moved*60)
+    EndFor
+  ElseIf d - u <> moved Then 
+    moved = 0
+  EndIf 
+  If enter = 1 Then
+    albumMode = index
+  EndIf  
+  lock = 0
+EndWhile
+For i = 0 To Array.GetItemCount(albums)
+  Shapes.Remove(albumBox[i])
+  Shapes.Remove(albumTitle[i])
+EndFor  
+Shapes.Remove(albumSelector)
+moved = 0
+songcount = 0
+index = 1
+If albumMode = 0 Then
+  albumSelect = 1
+Else
+  albumSelect = albumMode
+EndIf  
+songSelect = 1  
+GraphicsWindow.PenWidth = 0
+GraphicsWindow.BrushColor = "White"
+selector = Shapes.AddRectangle(254,24)
+Shapes.Move(selector, 23, 288)
+progressbarblank = Shapes.AddRectangle(300,10)
+Shapes.Move(progressbarblank, 0, 590)
+GraphicsWindow.BrushColor = "Blue"
+progressbar = Shapes.AddRectangle(300,10)
+Shapes.Move(progressbar, -300, 590)
+If albumMode = 0 Then
+  For h = 1 To Array.GetItemCount(albums)
+    For i = 1 To Array.GetItemCount(songs[h])
+      'If LDSound.MusicPlayTime(songs[h][i]) >= 60 Then
+        songcount = songcount + 1
+        indexNo[h][i] = songcount
+        GraphicsWindow.BrushColor = File.ReadLine(albums[h] + "\Settings\color.txt",1)
+        box[h][i] = Shapes.AddRectangle(250,20)
+        Shapes.Move(box[h][i], 25, 290 + 30*(songcount-1))
+        Shapes.Zoom(box[h][i], 1 - 0.05*(songcount-1), 1 - 0.05*(songcount-1))
+        Shapes.SetOpacity(box[h][i], 100 - 10*(songcount-1))
+        GraphicsWindow.FontSize = 12
+        GraphicsWindow.BrushColor = File.ReadLine(albums[h] + "\Settings\color.txt",2)
+        boxTitle[h][i] = Shapes.AddText(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]) + 2, Text.GetLength(songs[h][i]) - 5 - Text.GetLength(albums[h])))
+        Shapes.Move(boxTitle[h][i], 25 + 0.025*(songcount-1)*250 - (GraphicsWindow.FontSize/1.75)*0.025*(songcount-1)*Text.GetLength(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]), Text.GetLength(songs[h][i]) - 4 - Text.GetLength(albums[h]))), 290 + 30*(songcount-1))
+        Shapes.Zoom(boxTitle[h][i], 1 - 0.05*(songcount-1), 1 - 0.05*(songcount-1))
+        Shapes.SetOpacity(boxTitle[h][i], 100 - 10*(songcount-1))
+      'EndIf  
+    EndFor
+  EndFor 
+Else
+  For i = 1 To Array.GetItemCount(songs[albumMode])
+    'If LDSound.MusicPlayTime(songs[albumMode][i]) >= 60 Then
+      songcount = songcount + 1
+      indexNo[albumMode][i] = songcount
+      GraphicsWindow.BrushColor = File.ReadLine(albums[albumMode] + "\Settings\color.txt",1)
+      box[albumMode][i] = Shapes.AddRectangle(250,20)
+      Shapes.Move(box[albumMode][i], 25, 290 + 30*(songcount-1))
+      Shapes.Zoom(box[albumMode][i], 1 - 0.05*(songcount-1), 1 - 0.05*(songcount-1))
+      Shapes.SetOpacity(box[albumMode][i], 100 - 10*(songcount-1))
+      GraphicsWindow.FontSize = 12
+      GraphicsWindow.BrushColor = File.ReadLine(albums[albumMode] + "\Settings\color.txt",2)
+      boxTitle[albumMode][i] = Shapes.AddText(Text.GetSubText(songs[albumMode][i],Text.GetLength(albums[albumMode]) + 2, Text.GetLength(songs[albumMode][i]) - 5 - Text.GetLength(albums[albumMode])))
+      Shapes.Move(boxTitle[albumMode][i], 25 + 0.025*(songcount-1)*250 - (GraphicsWindow.FontSize/1.75)*0.025*(songcount-1)*Text.GetLength(Text.GetSubText(songs[albumMode][i],Text.GetLength(albums[albumMode]), Text.GetLength(songs[albumMode][i]) - 4 - Text.GetLength(albums[albumMode]))), 290 + 30*(songcount-1))
+      Shapes.Zoom(boxTitle[albumMode][i], 1 - 0.05*(songcount-1), 1 - 0.05*(songcount-1))
+      Shapes.SetOpacity(boxTitle[albumMode][i], 100 - 10*(songcount-1))
+    'EndIf  
+  EndFor    
+EndIf
+shuffleTotal = 0
+menu = "true"
+moved = 0
+trig = 0
+trig2 = 0
+Sound.Play(songs[albumSelect][songSelect])
+length = LDSound.MusicPlayTime(songs[albumSelect][songSelect]) * 1000
+GraphicsWindow.DrawResizedImage(albums[albumSelect] + "\Settings\bg.jpg", 0, 0, 300, 600)
+check = 0
+While menu = "true"
+  Program.Delay(1)
+  If check < length Then
+    Shapes.Move(progressbar, -300 + 300*(check/length),590)
+  EndIf  
+  If shuffle = 1 And trig2 = 0 Then
+    trig2 = 1 
+  EndIf  
+  If shuffle = 0 And trig2 = 1 Then
+    trig2 = 0
+    shuffleTotal = 0
+    For h = 1 To Array.GetItemCount(albums)
+      For i = 1 To Array.GetItemCount(songs[h])
+        shuffleCheck[h][i] = 0
+      EndFor
+    EndFor    
+  EndIf  
+  If pause = 0 Then
+    If trig = 1 Then
+      trig = 0
+      Sound.Play(songs[albumSelect][songSelect])
+    EndIf
+    check = check + 1
+  EndIf 
+  If pause = 1 And trig = 0 Then
+    trig = 1
+    Sound.Pause(songs[albumSelect][songSelect])
+  EndIf  
+  If check >= length And auto = 1 Then
+    Sound.Stop(songs[albumSelect][songSelect])
+    check = 0
+    If albumSelect = Array.GetItemCount(albums) And songSelect = Array.GetItemCount(songs[Array.GetItemCount(albums)]) And albumMode = 0 Then
+      albumSelect = 1
+      songSelect = 1
+      index = 1
+      testVar = 0
+      For h = 1 To Array.GetItemCount(albums)
+        For i = 1 To Array.GetItemCount(songs[h])
+          testVar = testVar + 1
+          Shapes.Move(box[h][i], 25, 290 + 30*(testVar-1))
+          Shapes.Zoom(box[h][i], 1 - 0.05*(Math.Abs(testVar-1)), 1 - 0.05*(Math.Abs(testVar-1)))
+          Shapes.SetOpacity(box[h][i], 100 - 10*(testVar-1))
+          Shapes.Move(boxTitle[h][i], 25 + 0.025*(Math.Abs(testVar-1))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-1))*Text.GetLength(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]) + 2, Text.GetLength(songs[h][i]) - 5 - Text.GetLength(albums[h]))), 290 + 30*(testVar-1))
+          Shapes.Zoom(boxTitle[h][i], 1 - 0.05*(Math.Abs(testVar-1)), 1 - 0.05*(Math.Abs(testVar-1)))
+          Shapes.SetOpacity(boxTitle[h][i], 100 - 10*(testVar-1))
+        EndFor
+      EndFor    
+    ElseIf songSelect = Array.GetItemCount(songs[albumSelect]) Then
+      If albumMode = 0 Then
+        albumSelect = albumSelect + 1
+        songSelect = 1
+        testVar = 0
+        index = index + 1
+        For h = 1 To Array.GetItemCount(albums)
+          For i = 1 To Array.GetItemCount(songs[h])
+            testVar = testVar + 1
+            Shapes.Move(box[h][i], 25, Shapes.GetTop(box[h][i]) - 30)
+            Shapes.Zoom(box[h][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+            Shapes.SetOpacity(box[h][i], 100 - 10*(Math.Abs(testVar-index)))
+            Shapes.Move(boxTitle[h][i], 25 + 0.025*(Math.Abs(testVar-index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-index))*Text.GetLength(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]) + 2, Text.GetLength(songs[h][i]) - 5 - Text.GetLength(albums[h]))), Shapes.GetTop(boxTitle[h][i]) - 30)
+            Shapes.Zoom(boxTitle[h][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+            Shapes.SetOpacity(boxTitle[h][i], 100 - 10*(Math.Abs(testVar-index)))
+          EndFor
+        EndFor  
+      Else
+        songSelect = 1
+        testVar = 0
+        index = 1 
+        For i = 1 To Array.GetItemCount(songs[albumMode])
+          testVar = testVar + 1
+          Shapes.Move(box[albumMode][i], 25, Shapes.GetTop(box[albumMode][i]) - 30)
+          Shapes.Zoom(box[albumMode][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+          Shapes.SetOpacity(box[albumMode][i], 100 - 10*(Math.Abs(testVar-index)))
+          Shapes.Move(boxTitle[albumMode][i], 25 + 0.025*(Math.Abs(testVar-index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-index))*Text.GetLength(Text.GetSubText(songs[albumMode][i],Text.GetLength(albums[albumMode]) + 2, Text.GetLength(songs[albumMode][i]) - 5 - Text.GetLength(albums[albumMode]))), Shapes.GetTop(boxTitle[albumMode][i]) - 30)
+          Shapes.Zoom(boxTitle[albumMode][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+          Shapes.SetOpacity(boxTitle[albumMode][i], 100 - 10*(Math.Abs(testVar-index)))
+        EndFor   
+      EndIf    
+    Else
+      songSelect = songSelect + 1
+      testVar = 0
+      index = index + 1
+      If albumMode = 0 Then
+        For h = 1 To Array.GetItemCount(albums)
+          For i = 1 To Array.GetItemCount(songs[h])
+            testVar = testVar + 1
+            Shapes.Move(box[h][i], 25, Shapes.GetTop(box[h][i]) - 30)
+            Shapes.Zoom(box[h][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+            Shapes.SetOpacity(box[h][i], 100 - 10*(Math.Abs(testVar-index)))
+            Shapes.Move(boxTitle[h][i], 25 + 0.025*(Math.Abs(testVar-index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-index))*Text.GetLength(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]) + 2, Text.GetLength(songs[h][i]) - 5 - Text.GetLength(albums[h]))), Shapes.GetTop(boxTitle[h][i]) - 30)
+            Shapes.Zoom(boxTitle[h][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+            Shapes.SetOpacity(boxTitle[h][i], 100 - 10*(Math.Abs(testVar-index)))
+          EndFor
+        EndFor  
+      Else
+        For i = 1 To Array.GetItemCount(songs[albumMode])
+          testVar = testVar + 1
+          Shapes.Move(box[albumMode][i], 25, Shapes.GetTop(box[albumMode][i]) - 30)
+          Shapes.Zoom(box[albumMode][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+          Shapes.SetOpacity(box[albumMode][i], 100 - 10*(Math.Abs(testVar-index)))
+          Shapes.Move(boxTitle[albumMode][i], 25 + 0.025*(Math.Abs(testVar-index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-index))*Text.GetLength(Text.GetSubText(songs[albumMode][i],Text.GetLength(albums[albumMode]) + 2, Text.GetLength(songs[albumMode][i]) - 5 - Text.GetLength(albums[albumMode]))), Shapes.GetTop(boxTitle[albumMode][i]) - 30)
+          Shapes.Zoom(boxTitle[albumMode][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+          Shapes.SetOpacity(boxTitle[albumMode][i], 100 - 10*(Math.Abs(testVar-index)))
+        EndFor 
+      EndIf   
+    EndIf  
+    Sound.Play(songs[albumSelect][songSelect])
+    length = LDSound.MusicPlayTime(songs[albumSelect][songSelect]) * 1000
+    GraphicsWindow.DrawResizedImage(albums[albumSelect] + "\Settings\bg.jpg", 0, 0, 300, 600) 
+  EndIf
+  If check >= length And shuffle = 1 Then
+    Sound.Stop(songs[albumSelect][songSelect])
+    check = 0
+    shuffleTotal = shuffleTotal + 1
+    shuffleCheck[shuffleTotal] = index
+    failsafe = 0
+    failtotal = 0
+    While failsafe <> 2
+      failsafe = 0
+      If albumMode = 0 Then
+        albumSelect = Math.GetRandomNumber(Array.GetItemCount(albums))
+      EndIf  
+      songSelect = Math.GetRandomNumber(Array.GetItemCount(songs[albumSelect]))
+      index = indexNo[albumSelect][songSelect]
+      For i = 1 To shuffleTotal
+        If index = shuffleCheck[i] Then
+          failsafe = 1
+        EndIf
+        If shuffleCheck[i] > 0 Then
+          failtotal = failtotal + 1
+        EndIf
+      EndFor
+      If failsafe = 0 Then
+        failsafe = 2
+      EndIf
+      If failtotal = songcount And index <> shuffleCheck[shuffleTotal] Then
+        failsafe = 2
+        shuffleTotal = 0
+        For i = 1 To songcount
+          shuffleCheck[i] = 0
+        EndFor  
+      EndIf
+    EndWhile     
+    testVar = 0
+    If albumMode = 0 Then
+      For h = 1 To Array.GetItemCount(albums)
+        For i = 1 To Array.GetItemCount(songs[h])
+          testVar = testVar + 1
+          Shapes.Move(box[h][i], 25, 290 + 30*(testVar-1) - 30*(index-1))
+          Shapes.Zoom(box[h][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+          Shapes.SetOpacity(box[h][i], 100 - 10*(Math.Abs(testVar-index)))
+          Shapes.Move(boxTitle[h][i], 25 + 0.025*(Math.Abs(testVar-index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-index))*Text.GetLength(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]) + 2, Text.GetLength(songs[h][i]) - 5 - Text.GetLength(albums[h]))), 290 + 30*(testVar-1) - 30*(index-1))
+          Shapes.Zoom(boxTitle[h][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+          Shapes.SetOpacity(boxTitle[h][i], 100 - 10*(Math.Abs(testVar-index)))
+        EndFor 
+      EndFor  
+    Else
+      For i = 1 To Array.GetItemCount(songs[albumMode])
+        testVar = testVar + 1
+        Shapes.Move(box[albumMode][i], 25, 290 + 30*(testVar-1) - 30*(index-1))
+        Shapes.Zoom(box[albumMode][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+        Shapes.SetOpacity(box[albumMode][i], 100 - 10*(Math.Abs(testVar-index)))
+        Shapes.Move(boxTitle[albumMode][i], 25 + 0.025*(Math.Abs(testVar-index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar-index))*Text.GetLength(Text.GetSubText(songs[albumMode][i],Text.GetLength(albums[albumMode]) + 2, Text.GetLength(songs[albumMode][i]) - 5 - Text.GetLength(albums[albumMode]))), 290 + 30*(testVar-1) - 30*(index-1))
+        Shapes.Zoom(boxTitle[albumMode][i], 1 - 0.05*(Math.Abs(testVar-index)), 1 - 0.05*(Math.Abs(testVar-index)))
+        Shapes.SetOpacity(boxTitle[albumMode][i], 100 - 10*(Math.Abs(testVar-index)))
+      EndFor  
+    EndIf    
+    Sound.Play(songs[albumSelect][songSelect])
+    length = LDSound.MusicPlayTime(songs[albumSelect][songSelect]) * 1000
+    GraphicsWindow.DrawResizedImage(albums[albumSelect] + "\Settings\bg.jpg", 0, 0, 300, 600) 
+  EndIf
+  If check >= length And repeat = 1 Then
+    check = 0
+    Sound.Stop(songs[albumSelect][songSelect])
+    Sound.Play(songs[albumSelect][songSelect])
+    length = LDSound.MusicPlayTime(songs[albumSelect][songSelect]) * 1000
+    GraphicsWindow.DrawResizedImage(albums[albumSelect] + "\Settings\bg.jpg", 0, 0, 300, 600) 
+  EndIf  
+  If d - u <> moved And d - u <> 0 And ((index <> 1 And index <> songcount) Or (index = 1 And d - u > 0 And index <> songcount) Or (index = songcount And d - u < 0 And index <> 1)) Then 
+    lock = 1
+    moved = d - u
+    check = 0
+    Sound.Stop(songs[albumSelect][songSelect])
+    index = index + moved
+    If albumMode = 0 Then
+      For h = 1 To Array.GetItemCount(albums)
+        For i = 1 To Array.GetItemCount(songs[h])
+          If indexNo[h][i] = index Then
+            songSelect = i
+            albumSelect = h
+          EndIf
+        EndFor
+      EndFor
+    Else 
+      For i = 1 To Array.GetItemCount(songs[albumMode])
+        If indexNo[albumMode][i] = index Then
+          songSelect = i
+        EndIf
+      EndFor 
+    EndIf    
+    Sound.Play(songs[albumSelect][songSelect])
+    length = LDSound.MusicPlayTime(songs[albumSelect][songSelect]) * 1000
+    GraphicsWindow.DrawResizedImage(albums[albumSelect] + "\Settings\bg.jpg", 0, 0, 300, 600)
+    testVar = 0
+    If albumMode = 0 Then
+      For h = 1 To Array.GetItemCount(albums)
+        For i = 1 To Array.GetItemCount(songs[h])
+          testVar = testVar + 1
+          Shapes.Move(box[h][i], 25, Shapes.GetTop(box[h][i]) - 30*(moved))
+          Shapes.Zoom(box[h][i], 1 - 0.05*(Math.Abs(testVar - index)), 1 - 0.05*(Math.Abs(testVar - index)))
+          Shapes.SetOpacity(box[h][i], 100 - 10*(Math.Abs(testVar - index)))
+          Shapes.Move(boxTitle[h][i], 25 + 0.025*(Math.Abs(testVar - index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar - index))*Text.GetLength(Text.GetSubText(songs[h][i],Text.GetLength(albums[h]) + 2, Text.GetLength(songs[h][i]) - 5 - Text.GetLength(albums[h]))), Shapes.GetTop(boxTitle[h][i]) - 30*(moved))
+          Shapes.Zoom(boxTitle[h][i], 1 - 0.05*(Math.Abs(testVar - index)), 1 - 0.05*(Math.Abs(testVar - index)))
+          Shapes.SetOpacity(boxTitle[h][i], 100 - 10*(Math.Abs(testVar - index)))
+        EndFor 
+      EndFor
+    Else
+      For i = 1 To Array.GetItemCount(songs[albumMode])
+        testVar = testVar + 1
+        Shapes.Move(box[albumMode][i], 25, Shapes.GetTop(box[albumMode][i]) - 30*(moved))
+        Shapes.Zoom(box[albumMode][i], 1 - 0.05*(Math.Abs(testVar - index)), 1 - 0.05*(Math.Abs(testVar - index)))
+        Shapes.SetOpacity(box[albumMode][i], 100 - 10*(Math.Abs(testVar - index)))
+        Shapes.Move(boxTitle[albumMode][i], 25 + 0.025*(Math.Abs(testVar - index))*250 - (GraphicsWindow.FontSize/1.75)*0.025*(Math.Abs(testVar - index))*Text.GetLength(Text.GetSubText(songs[albumMode][i],Text.GetLength(albums[albumMode]) + 2, Text.GetLength(songs[albumMode][i]) - 5 - Text.GetLength(albums[albumMode]))), Shapes.GetTop(boxTitle[albumMode][i]) - 30*(moved))
+        Shapes.Zoom(boxTitle[albumMode][i], 1 - 0.05*(Math.Abs(testVar - index)), 1 - 0.05*(Math.Abs(testVar - index)))
+        Shapes.SetOpacity(boxTitle[albumMode][i], 100 - 10*(Math.Abs(testVar - index)))
+      EndFor  
+    EndIf   
+  ElseIf d - u <> moved Then 
+    moved = 0  
+  EndIf
+  If back = 1 Then
+    menu = "false"
+  EndIf  
+  lock = 0  
+EndWhile  
+Goto start
+
+Sub KeyDownEventMenu
+  If GraphicsWindow.LastKey = "Return" And enter = 0 Then
+    enter = 1
+  EndIf
+  If GraphicsWindow.LastKey = "Back" And back = 0 Then
+    back = 1
+  EndIf  
+  If GraphicsWindow.LastKey = "Up" And lock = 0 And moved = 0 Then
+    u = 1
+    lock = 1
+  EndIf
+  If GraphicsWindow.LastKey = "Down" And lock = 0 And moved = 0 Then
+    d = 1
+    lock = 1
+  EndIf 
+  If GraphicsWindow.LastKey = "P" And p = 0 Then
+    p = 1
+    If pause = 0 Then
+      pause = 1
+      GraphicsWindow.Title = GraphicsWindow.Title + " PAUSED"
+    ElseIf pause = 1 Then
+      pause = 0
+      textcheck = Text.GetLength(GraphicsWindow.Title)
+      GraphicsWindow.Title = Text.GetSubText(GraphicsWindow.Title,1,textcheck - 7)
+    EndIf  
+  EndIf
+  If GraphicsWindow.LastKey = "A" And a = 0 And pause = 0 Then
+    a = 1
+    If auto = 0 Then
+      auto = 1
+      shuffle = 0
+      repeat = 0
+      GraphicsWindow.Title = "MP3 Player (Auto)"
+    ElseIf auto = 1 Then
+      auto = 0
+      GraphicsWindow.Title = "MP3 Player"
+    EndIf  
+  EndIf
+  If GraphicsWindow.LastKey = "S" And s = 0 And pause = 0 Then
+    s = 1
+    If shuffle = 0 Then
+      shuffle = 1
+      auto = 0
+      repeat = 0
+      GraphicsWindow.Title = "MP3 Player (Shuffle)"
+    ElseIf shuffle = 1 Then
+      shuffle = 0
+      GraphicsWindow.Title = "MP3 Player"
+    EndIf  
+  EndIf 
+  If GraphicsWindow.LastKey = "R" And r = 0 And pause = 0 Then
+    r = 1
+    If repeat = 0 Then
+      repeat = 1
+      auto = 0
+      shuffle = 0
+      GraphicsWindow.Title = "MP3 Player (Repeat)"
+    ElseIf repeat = 1 Then
+      repeat = 0
+      GraphicsWindow.Title = "MP3 Player"
+    EndIf  
+  EndIf  
+EndSub  
+
+Sub KeyUpEventMenu
+  If GraphicsWindow.LastKey = "Return" Then
+    enter = 0
+  EndIf 
+  If GraphicsWindow.LastKey = "Back" Then
+    back = 0
+  EndIf 
+  If GraphicsWindow.LastKey = "Up" Then
+    u = 0
+  EndIf
+  If GraphicsWindow.LastKey = "Down" Then
+    d = 0
+  EndIf  
+  If GraphicsWindow.LastKey = "P" Then
+    p = 0
+  EndIf 
+  If GraphicsWindow.LastKey = "A" Then
+    a = 0
+  EndIf 
+  If GraphicsWindow.LastKey = "S" Then
+    s = 0
+  EndIf
+  If GraphicsWindow.LastKey = "R" Then
+    r = 0
+  EndIf
+EndSub
